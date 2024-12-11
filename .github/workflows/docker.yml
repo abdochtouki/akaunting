@@ -1,4 +1,4 @@
-name: Build, Test and Deploy to Docker Hub
+name: Build, Test and Deploy to Docker Hub and VM
 
 on:
   push:
@@ -50,14 +50,23 @@ jobs:
       run: |
         docker push abdochtouki/my-app:${{ github.sha }}
 
-  cleanup:
+  deploy:
     runs-on: ubuntu-latest
-    if: always()
-
+    needs: build
     steps:
-    - name: Post job cleanup
-      run: |
-        echo "Cleaning up..."
-        # Vous pouvez ajouter ici des étapes supplémentaires si nécessaire pour nettoyer après l'exécution des jobs.
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-  # Optionnel : Déployer sur votre serveur ou service après la publication sur Docker Hub.
+    - name: Deploy to VM
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        VM_IP: ${{ secrets.VM_IP }}
+      run: |
+        echo "$SSH_PRIVATE_KEY" > private_key
+        chmod 600 private_key
+        ssh -i private_key -o StrictHostKeyChecking=no user@$VM_IP << 'EOF'
+          docker pull abdochtouki/my-app:${{ github.sha }}
+          docker stop akaunting-app || true
+          docker rm akaunting-app || true
+          docker run -d --name akaunting-app -p 8081:80 abdochtouki/my-app:${{ github.sha }}
+        EOF
