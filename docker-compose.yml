@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # Service pour l'application Akaunting
   app:
     build: .
     container_name: akaunting-app
@@ -22,7 +23,10 @@ services:
       - "8081:80"
     networks:
       - akaunting-network
-
+    command: >
+      bash -c "until mysql -h db -u root -proot -e 'select 1'; do echo 'Waiting for MySQL...'; sleep 3; done; php artisan migrate --force; apache2-foreground"
+  
+  # Service pour la base de données MySQL
   db:
     image: mysql:8
     container_name: akaunting-db
@@ -31,6 +35,7 @@ services:
       - MYSQL_DATABASE=akaunting
     volumes:
       - db_data:/var/lib/mysql
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh  # Si tu as un script d'initialisation
     networks:
       - akaunting-network
 
@@ -40,3 +45,4 @@ networks:
 
 volumes:
   db_data:
+
