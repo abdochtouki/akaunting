@@ -1,52 +1,23 @@
-# Use PHP 8.2 as the base image
+# Utiliser l'image Apache de base
 FROM php:8.2-apache
 
-# Install required packages and PHP extensions
+# Installer Node.js et npm
 RUN apt-get update && apt-get install -y \
-    git \
-    unzip \
-    libzip-dev \
-    libicu-dev \
-    zlib1g-dev \
-    libbz2-dev \
-    libonig-dev \
-    libxml2-dev \
-    libpng-dev \
     curl \
-    && docker-php-ext-configure intl \
-    && docker-php-ext-install \
-       bcmath \
-       intl \
-       zip \
-       pdo_mysql \
-       mbstring \
-       gd
+    gnupg \
+    lsb-release \
+    && curl -sL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs \
+    && apt-get clean
 
-# Install Node.js (includes npm)
-RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
-    && apt-get install -y nodejs
+# Copier votre code dans le conteneur (assurez-vous que vous avez les bons fichiers)
+COPY . /var/www/html/
 
-# Copy Composer from the official Composer image
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-# Configure working directory
+# Accéder au répertoire de votre projet où se trouve package.json
 WORKDIR /var/www/html
 
-# Copy project files
-COPY . .
+# Installer les dépendances npm
+RUN npm install
 
-# Set permissions
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
-
-# Install front-end dependencies and build assets (if applicable)
-RUN if [ -f package.json ]; then npm install && npm run build || echo "No build needed"; fi
-
-# Enable Apache modules
-RUN a2enmod rewrite
-
-# Expose port 80
-EXPOSE 80
-
-# Start Apache server
-CMD ["apache2-foreground"]
+# Exécuter npm run dev en arrière-plan et démarrer Apache
+CMD npm run dev & apache2-foreground
