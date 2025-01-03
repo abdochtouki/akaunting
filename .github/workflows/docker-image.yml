@@ -1,0 +1,36 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and Push Docker Image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/akaunting-app:${{ github.sha }} .
+          docker push ${{ secrets.DOCKER_USERNAME }}/akaunting-app:${{ github.sha }}
+
+      - name: Tag Latest and Push
+        run: |
+          docker tag ${{ secrets.DOCKER_USERNAME }}/akaunting-app:${{ github.sha }} ${{ secrets.DOCKER_USERNAME }}/akaunting-app:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/akaunting-app:latest
